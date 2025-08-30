@@ -17,11 +17,9 @@ const CustomersPage = () => {
   const [limit] = useState(10);
   const [total, setTotal] = useState(0);
 
-  // Modal state
   const [showView, setShowView] = useState(false);
   const [viewingCustomerId, setViewingCustomerId] = useState(null);
 
-  // Fetch customers
   useEffect(() => {
     const fetchCustomers = async () => {
       setLoading(true);
@@ -41,35 +39,46 @@ const CustomersPage = () => {
     fetchCustomers();
   }, [token, page]);
 
-  // Search filter
   useEffect(() => {
-    if (!searchQuery) {
+    if (!searchQuery.trim()) {
       setFilteredCustomers(customers);
     } else {
       const lower = searchQuery.toLowerCase();
-      const filtered = customers.filter((c) =>
-        [c.name, c.email, c.phone, c.status].some(
-          (field) => field?.toLowerCase().includes(lower)
+      setFilteredCustomers(
+        customers.filter((c) =>
+          [c.name, c.email, c.phone, c.status].some((field) =>
+            field?.toLowerCase().includes(lower)
+          )
         )
       );
-      setFilteredCustomers(filtered);
     }
   }, [searchQuery, customers]);
+
+  const statusBadge = (status) => {
+    const base = "px-2 py-1 text-xs font-semibold rounded inline-block";
+    switch ((status || '').toLowerCase()) {
+      case "active": return `${base} bg-green-100 text-green-700`;
+      case "inactive": return `${base} bg-yellow-100 text-yellow-800`;
+      case "blocked": return `${base} bg-red-100 text-red-700`;
+      default: return `${base} bg-gray-100 text-gray-700`;
+    }
+  };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-gray-800">Customers Management</h2>
+        <h1 className="text-3xl font-bold text-gray-800">
+          Customers Management
+        </h1>
       </div>
 
-      {/* Search Bar */}
       <div className="mb-4">
         <input
           type="text"
           placeholder="Search by name, email, phone, status..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="border px-3 py-2 rounded w-full md:w-1/3"
+          className="border border-gray-300 px-4 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none w-full md:w-1/3"
         />
       </div>
 
@@ -83,7 +92,7 @@ const CustomersPage = () => {
           ) : (
             <div className="overflow-x-auto rounded-lg shadow border border-gray-200">
               <table className="min-w-full bg-white">
-                <thead className="bg-gray-100">
+                <thead className="bg-gray-100 text-gray-700 uppercase text-sm font-semibold">
                   <tr>
                     <th className="text-left px-4 py-2 border-b">ID</th>
                     <th className="text-left px-4 py-2 border-b">Name</th>
@@ -97,22 +106,24 @@ const CustomersPage = () => {
                 <tbody>
                   {filteredCustomers.map((c) => (
                     <tr key={c.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 border-b">{c.id}</td>
-                      <td className="px-4 py-2 border-b">{c.name}</td>
-                      <td className="px-4 py-2 border-b">{c.email || "-"}</td>
-                      <td className="px-4 py-2 border-b">{c.phone || "-"}</td>
-                      <td className="px-4 py-2 border-b">{c.status}</td>
-                      <td className="px-4 py-2 border-b">{c.total_orders ?? 0}</td>
+                      <td className="px-4 py-2 border-b text-sm font-medium text-gray-800">{c.id}</td>
+                      <td className="px-4 py-2 border-b text-sm">{c.name}</td>
+                      <td className="px-4 py-2 border-b text-sm text-gray-600">{c.email || "-"}</td>
+                      <td className="px-4 py-2 border-b text-sm text-gray-600">{c.phone || "-"}</td>
+                      <td className="px-4 py-2 border-b">
+                        <span className={statusBadge(c.status)}>{c.status}</span>
+                      </td>
+                      <td className="px-4 py-2 border-b text-center text-sm">{c.total_orders ?? 0}</td>
                       <td className="px-4 py-2 border-b">
                         <button
                           onClick={() => {
                             setViewingCustomerId(c.id);
                             setShowView(true);
                           }}
-                           className="inline-flex items-center gap-2 px-4 py-1 bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200 hover:border-blue-400 rounded-md transition duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="inline-flex items-center gap-2 px-4 py-1 bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200 hover:border-blue-400 rounded-md transition duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           title="View"
                         >
-                         View
+                          <FaEye className="w-4 h-4" /> View
                         </button>
                       </td>
                     </tr>
@@ -122,7 +133,6 @@ const CustomersPage = () => {
             </div>
           )}
 
-          {/* Pagination */}
           <div className="flex justify-between items-center mt-4">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -131,15 +141,11 @@ const CustomersPage = () => {
             >
               Previous
             </button>
-            <span>
+            <span className="text-sm font-medium text-gray-700">
               Page {page} of {Math.ceil(total / limit) || 1}
             </span>
             <button
-              onClick={() =>
-                setPage((p) =>
-                  p < Math.ceil(total / limit) ? p + 1 : p
-                )
-              }
+              onClick={() => setPage((p) => (p < Math.ceil(total / limit) ? p + 1 : p))}
               disabled={page >= Math.ceil(total / limit)}
               className="px-4 py-2 bg-gray-800 text-white rounded disabled:opacity-50"
             >
@@ -153,7 +159,6 @@ const CustomersPage = () => {
         </>
       )}
 
-      {/* View Modal */}
       {showView && viewingCustomerId && (
         <CustomerViewModal
           visible={showView}

@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import http from 'http';
+import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 
 import authRoutes from './routes/auth.js';
@@ -10,9 +12,14 @@ import orderRoutes from './routes/orders.js';
 import dashboardRoutes from './routes/dashboard.js';
 import uploadRoutes from './routes/upload.js';
 import customerRoutes from './routes/customersRoutes.js';
+import couponRoutes from './routes/coupons.js';
+import referralRoutes from "./routes/referrals.js";
 
 dotenv.config();
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { /* cors, etc */ });
+app.set("socketio", io); // 👈 required to pass io to route handlers
 
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:5174'],
@@ -41,6 +48,8 @@ app.use('/api/admin/products', productRoutes);
 app.use('/api/admin/orders', orderRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin/customers', customerRoutes);
+app.use("/api/admin", couponRoutes); 
+app.use("/api/admin", referralRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

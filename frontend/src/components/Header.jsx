@@ -12,11 +12,17 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-gradient-to-r from-purple-700 to-indigo-700 border-b shadow flex justify-between items-center px-6 py-3">
-      {/* <h1 className="text-xl font-semibold text-gray-800">📊 Sambalpuri Admin Dashboard</h1> */}
+    <header className="bg-gradient-to-r from-purple-700 to-indigo-700 shadow-md border-b border-indigo-800 px-6 py-3 flex justify-between items-center">
+      {/* Branding / Title */}
+      <div className="text-white text-lg md:text-xl font-bold tracking-wide flex items-center gap-2">
+        <span role="img" aria-label="thread">🧵</span>
+        Utkalshri Admin Portal
+      </div>
+
+      {/* Logout Button */}
       <button
         onClick={handleLogout}
-        className="ml-auto flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white transition"
+        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-md transition duration-150"
       >
         <FaSignOutAlt className="w-4 h-4" />
         Logout

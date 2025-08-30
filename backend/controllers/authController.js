@@ -43,7 +43,7 @@ export const loginAdmin = async (req, res) => {
         full_name: user.full_name
       },
       process.env.JWT_SECRET,
-      { expiresIn: '8h' }
+      { expiresIn: '1d' }
     );
 
     // 5️⃣ Return

@@ -336,42 +336,109 @@ export const getOrderDetail = async (req, res) => {
  * PATCH /api/admin/orders/:id/status
  * Update order status
  */
+
+// export const updateOrderStatus = async (req, res) => {
+//   const { id } = req.params;
+//   const { status, changed_by } = req.body;
+
+//   if (!status) {
+//     return res.status(400).json({ error: 'Status is required.' });
+//   }
+
+//   try {
+//     // 1️⃣ Update order
+//     const result = await pool.query(
+//       `UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+//       [status, id]
+//     );
+
+//     if (result.rows.length === 0) {
+//       return res.status(404).json({ error: 'Order not found.' });
+//     }
+
+//     const updatedOrder = result.rows[0];
+
+//     // 2️⃣ Optionally insert into status history
+//     await pool.query(
+//       `INSERT INTO order_status_history (order_id, status, changed_by)
+//        VALUES ($1, $2, $3)`,
+//       [id, status, changed_by || 'Admin']
+//     );
+
+//     res.json(updatedOrder);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: 'Server error' });
+//   }
+// };
+
+// Paginated Orders
+
 export const updateOrderStatus = async (req, res) => {
   const { id } = req.params;
   const { status, changed_by } = req.body;
+  const io = req.app.get("socketio");
 
-  if (!status) {
-    return res.status(400).json({ error: 'Status is required.' });
-  }
+  console.log("📥 Incoming status update request:");
+  console.log("🆔 Order ID:", id);
+  console.log("🚦 New Status:", status);
+  console.log("👤 Changed By:", changed_by);
 
   try {
-    // 1️⃣ Update order
-    const result = await pool.query(
+    const updated = await pool.query(
       `UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
       [status, id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Order not found.' });
+    if (updated.rows.length === 0) {
+      console.warn("⚠️ Order not found in DB");
+      return res.status(404).json({ message: "Order not found." });
     }
 
-    const updatedOrder = result.rows[0];
+    console.log("✅ DB Update Result:", updated.rows[0]);
 
-    // 2️⃣ Optionally insert into status history
-    await pool.query(
-      `INSERT INTO order_status_history (order_id, status, changed_by)
-       VALUES ($1, $2, $3)`,
-      [id, status, changed_by || 'Admin']
-    );
+    // ✅ Mark referral reward as applied if status changed to Paid
+    if (status === "Delivered") {
+      const orderId = updated.rows[0].id;
 
-    res.json(updatedOrder);
+      // Get customer_id from the updated order
+      const customerIdResult = await pool.query(
+        `SELECT customer_id FROM orders WHERE id = $1`,
+        [orderId]
+      );
+
+      const customerId = customerIdResult.rows[0]?.customer_id;
+
+      if (customerId) {
+        const rewardRes = await pool.query(
+          `UPDATE referral_usage
+       SET reward_applied = true
+       WHERE referred_user_id = $1 AND order_id = $2 AND reward_applied = false`,
+          [customerId, orderId]
+        );
+
+        if (rewardRes.rowCount > 0) {
+          console.log(`🎉 Referral reward marked as applied for order ${orderId} (customer ${customerId})`);
+        }
+      }
+    }
+
+    // Emit to user side via socket
+    io.emit("order_updated", {
+      orderId: id,
+      status,
+    });
+
+    console.log("📡 Emitted order_updated via WebSocket");
+
+    return res.json({ message: "Status updated", order: updated.rows[0] });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error("❌ Status update error:", err);
+    return res.status(500).json({ message: "Failed to update status" });
   }
 };
 
-// Paginated Orders
+
 export const getPaginatedOrders = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -395,14 +462,14 @@ export const getPaginatedOrders = async (req, res) => {
 
     // 2️⃣ Get paginated data
     let dataQuery = `
-      SELECT id, customer_name, customer_phone, customer_email,
-             shipping_address, total_amount, status, payment_status,
-             payment_method, created_at
-      FROM orders
-      ${whereClause}
-      ORDER BY created_at DESC
-      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
-    `;
+        SELECT id, customer_name, customer_phone, customer_email,
+              shipping_address, total_amount, status, payment_status,
+              payment_method, created_at
+        FROM orders
+        ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+      `;
 
     params.push(limit, offset);
     const dataResult = await pool.query(dataQuery, params);

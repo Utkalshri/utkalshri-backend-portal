@@ -32,10 +32,19 @@ const OrderViewModal = ({ visible, onClose, orderId, token }) => {
   }, [orderId, token]);
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return "-";
-    const d = new Date(dateStr);
-    return isNaN(d) ? "-" : d.toLocaleString();
-  };
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  return isNaN(d)
+    ? "-"
+    : d.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+};
 
   const formatCurrency = (val) => {
     if (val === null || val === undefined) return "-";
@@ -62,6 +71,16 @@ const OrderViewModal = ({ visible, onClose, orderId, token }) => {
     }
   };
 
+  const badgeClass = (status) => {
+    return `text-xs font-semibold px-2.5 py-0.5 rounded-full inline-block
+      ${status === "Delivered" ? "bg-green-100 text-green-700" : ""}
+      ${status === "Pending" ? "bg-yellow-100 text-yellow-800" : ""}
+      ${status === "Cancelled" ? "bg-red-100 text-red-700" : ""}
+      ${status === "Shipped" ? "bg-blue-100 text-blue-700" : ""}
+      ${status === "Confirmed" ? "bg-indigo-100 text-indigo-700" : ""}
+      ${!["Delivered", "Pending", "Cancelled", "Shipped", "Confirmed"].includes(status) ? "bg-gray-100 text-gray-700" : ""}`;
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center overflow-y-auto">
       <div className="bg-white w-full max-w-3xl rounded-lg shadow-lg p-6 overflow-y-auto max-h-screen">
@@ -82,19 +101,13 @@ const OrderViewModal = ({ visible, onClose, orderId, token }) => {
           <div className="space-y-6">
             {/* General Info */}
             <div>
-              <h3 className="text-lg font-semibold mb-2">
-                General Information
-              </h3>
+              <h3 className="text-lg font-semibold mb-2">General Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div>
-                  <strong>Order ID:</strong> {order.id ?? "-"}
-                </div>
-                <div>
-                  <strong>Date:</strong> {formatDate(order.created_at)}
-                </div>
+                <div><strong>Order ID:</strong> {order.id ?? "-"}</div>
+                <div><strong>Date:</strong> {formatDate(order.created_at)}</div>
                 <div className="flex items-center space-x-2">
                   <strong>Status:</strong>
-                  <span>{order.status || "-"}</span>
+                  <span className={badgeClass(order.status)}>{order.status || "-"}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <strong>Update Status:</strong>
@@ -105,7 +118,7 @@ const OrderViewModal = ({ visible, onClose, orderId, token }) => {
                   >
                     <option value="">--Select--</option>
                     <option value="Pending">Pending</option>
-                    <option value="Processing">Processing</option>
+                    <option value="Confirmed">Confirmed</option>
                     <option value="Shipped">Shipped</option>
                     <option value="Delivered">Delivered</option>
                     <option value="Cancelled">Cancelled</option>
@@ -125,27 +138,18 @@ const OrderViewModal = ({ visible, onClose, orderId, token }) => {
                   <strong>Payment Method:</strong> {order.payment_method || "-"}
                 </div>
                 <div>
-                  <strong>Total Amount:</strong>{" "}
-                  {formatCurrency(order.total_amount)}
+                  <strong>Total Amount:</strong> {formatCurrency(order.total_amount)}
                 </div>
               </div>
             </div>
 
             {/* Customer Info */}
             <div>
-              <h3 className="text-lg font-semibold mb-2">
-                Customer Information
-              </h3>
+              <h3 className="text-lg font-semibold mb-2">Customer Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div>
-                  <strong>Name:</strong> {order.customer_name || "-"}
-                </div>
-                <div>
-                  <strong>Phone:</strong> {order.customer_phone || "-"}
-                </div>
-                <div>
-                  <strong>Email:</strong> {order.customer_email || "-"}
-                </div>
+                <div><strong>Name:</strong> {order.customer_name || "-"}</div>
+                <div><strong>Phone:</strong> {order.customer_phone || "-"}</div>
+                <div><strong>Email:</strong> {order.customer_email || "-"}</div>
                 <div className="md:col-span-2">
                   <strong>Shipping Address:</strong>
                   <div>{order.shipping_address || "-"}</div>
@@ -169,9 +173,7 @@ const OrderViewModal = ({ visible, onClose, orderId, token }) => {
                   <table className="min-w-full bg-white">
                     <thead className="bg-gray-100">
                       <tr>
-                        <th className="text-left px-4 py-2 border-b">
-                          Product
-                        </th>
+                        <th className="text-left px-4 py-2 border-b">Product</th>
                         <th className="text-left px-4 py-2 border-b">SKU</th>
                         <th className="text-left px-4 py-2 border-b">Price</th>
                         <th className="text-left px-4 py-2 border-b">Qty</th>
@@ -193,18 +195,10 @@ const OrderViewModal = ({ visible, onClose, orderId, token }) => {
                               <span>{item.product_name || "-"}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-2 border-b">
-                            {item.sku || "-"}
-                          </td>
-                          <td className="px-4 py-2 border-b">
-                            {formatCurrency(item.price)}
-                          </td>
-                          <td className="px-4 py-2 border-b">
-                            {item.quantity ?? "-"}
-                          </td>
-                          <td className="px-4 py-2 border-b">
-                            {formatCurrency(item.total)}
-                          </td>
+                          <td className="px-4 py-2 border-b">{item.sku || "-"}</td>
+                          <td className="px-4 py-2 border-b">{formatCurrency(item.price)}</td>
+                          <td className="px-4 py-2 border-b">{item.quantity ?? "-"}</td>
+                          <td className="px-4 py-2 border-b">{formatCurrency(item.total)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -224,24 +218,16 @@ const OrderViewModal = ({ visible, onClose, orderId, token }) => {
                     <thead className="bg-gray-100">
                       <tr>
                         <th className="text-left px-4 py-2 border-b">Status</th>
-                        <th className="text-left px-4 py-2 border-b">
-                          Changed At
-                        </th>
-                        <th className="text-left px-4 py-2 border-b">
-                          Changed By
-                        </th>
+                        <th className="text-left px-4 py-2 border-b">Changed At</th>
+                        <th className="text-left px-4 py-2 border-b">Changed By</th>
                       </tr>
                     </thead>
                     <tbody>
                       {order.status_history.map((entry) => (
                         <tr key={entry.id} className="hover:bg-gray-50">
                           <td className="px-4 py-2 border-b">{entry.status}</td>
-                          <td className="px-4 py-2 border-b">
-                            {formatDate(entry.changed_at)}
-                          </td>
-                          <td className="px-4 py-2 border-b">
-                            {entry.changed_by}
-                          </td>
+                          <td className="px-4 py-2 border-b">{formatDate(entry.changed_at)}</td>
+                          <td className="px-4 py-2 border-b">{entry.changed_by}</td>
                         </tr>
                       ))}
                     </tbody>
